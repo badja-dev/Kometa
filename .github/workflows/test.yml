@@ -1,0 +1,24 @@
+name: Test Changelog Reader
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to extract (e.g. 2.3.1)
+        default: "2.3.1"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Get Changelog Entry
+        id: changelog_reader
+        uses: mindsers/changelog-reader-action@v2
+        with:
+          version: ${{ github.event.inputs.version }}
+          path: ./CHANGELOG.md
+
+      - name: Print extracted text
+        run: echo "${{ steps.changelog_reader.outputs.changes }}"
