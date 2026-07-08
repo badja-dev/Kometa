@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Create the per-library `_backgrounds` and `_logos` image-map tables unconditionally so caches created before those tables existed self-heal on the next run, instead of raising `no such table: image_map_<n>_logos` and failing every collection that sets a logo.
 - Report transient TMDb network failures as a warning and a timeout-style error instead of dumping the raw connection traceback into the run summary.
+- `modules/operations.py`: fix `AttributeError: 'MovieSection'/'ShowSection' object has no attribute '_save_multi_edits_with_retry'` raised by every batched Plex metadata edit (ratings, labels, genres, content rating, studio). PR #3326 added `_save_multi_edits_with_retry()` as a retry-wrapped method on Kometa's own `Plex`/`Library` wrapper class, but `plex_update_in_batches` called it one level too deep, on the raw `plexapi` section object (`self.library.Plex`) instead of on the wrapper itself (`self.library`). Now calls `self.library._save_multi_edits_with_retry()`, matching the working call site already used in `modules/plex.py::alter_collection`.
 
 ### Changed
 
