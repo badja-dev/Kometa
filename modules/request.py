@@ -10,7 +10,7 @@ from lxml import html
 from requests.exceptions import ConnectionError
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from modules import util
+from modules import timings, util
 from modules.poster import ImageData
 from modules.util import Failed
 
@@ -92,7 +92,11 @@ class Requests:
         session = requests.Session()
         if not verify_ssl:
             self.no_verify_ssl(session)
-        return session
+        # Every consumer of this session (plexapi, tmdbapis, arrapi, and this module's own
+        # get/post) rides through session.request, so one hook here times all HTTP traffic.
+        # Plex/Radarr/Sonarr hostnames aren't known yet at this point - they're registered later,
+        # once connected, via timings.registry.set_plex_hostname()/register_arr_host().
+        return timings.instrument_session(session)
 
     def no_verify_ssl(self, session=None):
         global_opt_out = session is None
@@ -135,7 +139,8 @@ class Requests:
         return YAML(input_data=response.content, check_empty=check_empty)
 
     def get_image(self, url, session=None):
-        response = self.get(url, header=True) if session is None else session.get(url, headers=get_header(None, True, None), timeout=DEFAULT_TIMEOUT)
+        with timings.tag_context("image"):
+            response = self.get(url, header=True) if session is None else session.get(url, headers=get_header(None, True, None), timeout=DEFAULT_TIMEOUT)
         if response.status_code == 404:
             raise Failed(f"Image Error: Not Found on Image URL: {url}")
         if response.status_code >= 400:
