@@ -6502,6 +6502,20 @@
         "file_background": {
           "type": "string"
         },
+        "url_logo": {
+          "type": "string",
+          "format": "uri"
+        },
+        "file_logo": {
+          "type": "string"
+        },
+        "url_square_art": {
+          "type": "string",
+          "format": "uri"
+        },
+        "file_square_art": {
+          "type": "string"
+        },
         "minimum_items": {
           "type": "integer",
           "minimum": 1
@@ -6989,6 +7003,24 @@
         },
         "^file_background_.+$": {
           "description": "Override the background filepath for a specific collection by key.",
+          "type": "string"
+        },
+        "^url_logo_.+$": {
+          "description": "Override the logo URL for a specific collection by key.",
+          "type": "string",
+          "format": "uri"
+        },
+        "^file_logo_.+$": {
+          "description": "Override the logo filepath for a specific collection by key.",
+          "type": "string"
+        },
+        "^url_square_art_.+$": {
+          "description": "Override the square art URL for a specific collection by key.",
+          "type": "string",
+          "format": "uri"
+        },
+        "^file_square_art_.+$": {
+          "description": "Override the square art filepath for a specific collection by key.",
           "type": "string"
         },
         "^visible_home_.+$": {
@@ -9054,6 +9086,10 @@
         "sort_title": {
           "type": "string"
         },
+        "build_collection": {
+          "description": "When false, the collection is not created but related Radarr or Sonarr actions can still run.",
+          "type": "boolean"
+        },
         "schedule": {
           "type": "string"
         },
@@ -9403,6 +9439,13 @@
         },
         "append_addons": {
           "type": "object"
+        },
+        "title_override": {
+          "description": "Override the generated collection title for specific dynamic collection keys.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         },
         "remove_addons": {
           "oneOf": [
@@ -14117,6 +14160,16 @@
           "type": "boolean"
         },
         "^exclude_user_.+$": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "^exclude_users_.+$": {
           "oneOf": [
             {
               "type": "string"

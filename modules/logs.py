@@ -3,8 +3,10 @@ import logging
 import os
 import re
 import sys
+import textwrap
 import traceback
 from logging.handlers import RotatingFileHandler
+from urllib.parse import quote, quote_plus
 
 LOG_DIR = "logs"
 COLLECTION_DIR = "collections"
@@ -257,8 +259,13 @@ class MyLogger:
             self.spacing = 0
 
     def secret(self, text):
-        if text and str(text) not in self.secrets:
-            self.secrets.append(str(text))
+        if not text:
+            return
+        # Register percent-encoded forms too, so a secret embedded in a
+        # logged URL query string still gets redacted.
+        for variant in [str(text), quote(str(text)), quote_plus(str(text))]:
+            if variant not in self.secrets:
+                self.secrets.append(variant)
 
     def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False, stacklevel=1):
         trace = level == TRACE
@@ -274,6 +281,18 @@ class MyLogger:
                 self._log(level, line, args, exc_info=exc_info, extra=extra, stack_info=stack_info, stacklevel=stacklevel)
                 if i == 0:
                     self._formatter(log_only=True, space=True)
+            log_only = True
+        elif msg.startswith("| ") and not msg.startswith("|=") and len(msg) > self.screen_width + 2:
+            content = msg[2:-2] if msg.endswith(" |") else msg[2:]
+            wrap_at = self.screen_width - 4  # leaves 2 chars for continuation indent on subsequent lines
+            for i, chunk in enumerate(textwrap.wrap(content, wrap_at, break_long_words=True, break_on_hyphens=False) or [content]):
+                indent = "  " if i > 0 else ""
+                self._log(level, f"| {indent}{chunk:<{self.screen_width - 2 - len(indent)}} |", args, exc_info=exc_info, extra=extra, stack_info=stack_info, stacklevel=stacklevel)
+            log_only = True
+        elif not msg.startswith("|") and len(msg) > self.screen_width - 2:
+            wrap_at = self.screen_width - 4  # leaves 2 chars for continuation indent on subsequent lines
+            for i, chunk in enumerate(textwrap.wrap(msg, wrap_at, break_long_words=True, break_on_hyphens=False) or [msg]):
+                self._log(level, f"{'  ' if i > 0 else ''}{chunk}", args, exc_info=exc_info, extra=extra, stack_info=stack_info, stacklevel=stacklevel)
             log_only = True
         else:
             for secret in self.secrets:
