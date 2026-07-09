@@ -74,6 +74,8 @@ class Overlays:
             logger.info("")
 
             total_keys = len(key_to_overlays)
+            # Items freshly composed this run - their "Overlay" label add is batched once after the loop.
+            overlay_label_items = []
             # Plain attribute set/cleared around the whole per-item loop (not a `with` block, to
             # avoid re-indenting ~370 lines) - tags every network call made anywhere in this loop
             # (reload, episodes() lookups, poster upload) with this library so timings-*.json can
@@ -427,7 +429,7 @@ class Overlays:
                                     new_poster.save(temp, exif=exif_tags)
                                 with timings.track("overlay_plex_upload", library=self.library.name):
                                     self.library.upload_poster(item, temp)
-                                self.library.edit_tags("label", item, add_tags=["Overlay"], do_print=False)
+                                overlay_label_items.append(item)
                                 poster_compare = poster.compare if poster else item.thumb
                                 logger.info(f"  Overlays Applied: {', '.join(over_names)}")
                         except (OSError, BadRequest, SyntaxError) as e:
@@ -453,6 +455,9 @@ class Overlays:
                     logger.stacktrace()
                     logger.info("")
                     logger.error(f"Overlays Attempted on {item_title}: {', '.join(over_names)}")
+            if overlay_label_items:
+                with timings.track("overlay_label_batch", library=self.library.name):
+                    self.library.batch_add_label(overlay_label_items, "Overlay")
         timings.registry.library_ctx = None
         logger.exorcise()
         for _, over in properties.items():
