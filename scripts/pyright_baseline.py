@@ -74,9 +74,9 @@ def errors_by_file(report: dict) -> dict[str, int]:
             continue
         path = Path(diag["file"])
         try:
-            rel = str(path.relative_to(repo_root))
+            rel = path.relative_to(repo_root).as_posix()  # forward slashes always, so the baseline is stable across Windows/Linux/Mac
         except ValueError:
-            rel = str(path)
+            rel = path.as_posix()
         counts[rel] += 1
     return dict(counts)
 
@@ -92,11 +92,7 @@ def load_baseline() -> dict[str, int]:
 def save_baseline(per_file: dict[str, int]) -> None:
     total = sum(per_file.values())
     payload = {
-        "_comment": (
-            "Ratcheting pyright baseline. DO NOT hand-edit unless you know "
-            "what you're doing. Regenerate with: "
-            "python scripts/pyright_baseline.py --regenerate"
-        ),
+        "_comment": ("Ratcheting pyright baseline. DO NOT hand-edit unless you know " "what you're doing. Regenerate with: " "python scripts/pyright_baseline.py --regenerate"),
         "total_errors": total,
         "per_file_errors": dict(sorted(per_file.items())),
     }
@@ -130,8 +126,7 @@ def cmd_check() -> int:
     baseline = load_baseline()
     if not baseline:
         print(
-            f"ERROR: no baseline file at {BASELINE_PATH}.\n"
-            "Run `python scripts/pyright_baseline.py --regenerate` to create one.",
+            f"ERROR: no baseline file at {BASELINE_PATH}.\n" "Run `python scripts/pyright_baseline.py --regenerate` to create one.",
             file=sys.stderr,
         )
         return 2
@@ -172,19 +167,14 @@ def cmd_check() -> int:
             print(f"  {path}: {before} -> {after}  ({after - before:+d})")
         print()
         print(
-            "Pyright errors increased. Either fix the new errors, or if "
-            "the changes are intentional and reviewed, regenerate the "
-            "baseline with:",
+            "Pyright errors increased. Either fix the new errors, or if " "the changes are intentional and reviewed, regenerate the " "baseline with:",
             file=sys.stderr,
         )
         print("  python scripts/pyright_baseline.py --regenerate", file=sys.stderr)
         return 1
 
     if current_total < baseline_total:
-        print(
-            "Net improvement! Consider regenerating the baseline so future "
-            "PRs are held to the new lower bar:"
-        )
+        print("Net improvement! Consider regenerating the baseline so future " "PRs are held to the new lower bar:")
         print("  python scripts/pyright_baseline.py --regenerate")
 
     print("OK: no per-file regressions.")
