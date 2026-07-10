@@ -91,11 +91,13 @@ skips = ["B101"]
 #
 # To silence a single line (use sparingly!):
 #   foo.bar  # pyright: ignore[reportOptionalMemberAccess]
-include = ["modules", "kometa.py"]
+# FORK-ONLY: "tests" added to include on this fork - not yet proposed upstream, see the Kometa Discord discussion on whether to do this on nightly too.
+include = ["modules", "kometa.py", "tests"]
 stubPath = "stubs"
 exclude = [
     "**/__pycache__",
     "**/.*",
+    "**/node_modules",
     ".venv",
     "test_venv",
     ".direnv",
@@ -106,9 +108,9 @@ exclude = [
     "defaults",
     "fonts",
     "json-schema",
-    "tests",
 ]
 pythonVersion = "3.12"
+pythonPlatform = "Linux"
 typeCheckingMode = "basic"
 
 # Third-party packages without type stubs would otherwise generate hundreds

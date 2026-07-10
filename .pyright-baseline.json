@@ -1,11 +1,21 @@
 {
   "_comment": "Ratcheting pyright baseline. DO NOT hand-edit unless you know what you're doing. Regenerate with: python scripts/pyright_baseline.py --regenerate",
-  "total_errors": 5,
+  "total_errors": 47,
   "per_file_errors": {
     "kometa.py": 1,
     "modules/builder.py": 1,
     "modules/config.py": 1,
     "modules/meta.py": 1,
-    "modules/operations.py": 1
+    "modules/operations.py": 1,
+    "tests/test_cache.py": 16,
+    "tests/test_config.py": 3,
+    "tests/test_imdb.py": 2,
+    "tests/test_logs.py": 1,
+    "tests/test_operations.py": 1,
+    "tests/test_plex.py": 7,
+    "tests/test_request.py": 7,
+    "tests/test_small_modules.py": 1,
+    "tests/test_tmdb.py": 1,
+    "tests/test_webhooks.py": 3
   }
 }
