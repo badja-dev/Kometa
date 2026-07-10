@@ -4694,10 +4694,13 @@ class CollectionBuilder:
         sync_genres = self.item_details["item_genre.sync"] if "item_genre.sync" in self.item_details else None
 
         if "non_item_remove_label" in self.item_details:
+            remove_label = self.item_details["non_item_remove_label"]
             rk_compare = [item.ratingKey for item in self.items]
-            for non_item in self.library.search(label=self.item_details["non_item_remove_label"], libtype=self.builder_level):
-                if non_item.ratingKey not in rk_compare:
-                    self.library.edit_tags("label", non_item, remove_tags=self.item_details["non_item_remove_label"])
+            non_items = [ni for ni in self.library.search(label=remove_label, libtype=self.builder_level) if ni.ratingKey not in rk_compare]
+            for non_item in non_items:
+                logger.info(f"{non_item.title[:25]:<25} | Label | -{', -'.join(remove_label)}")
+            if non_items:
+                self.library.batch_edit_tags(non_items, "label", remove_tags=set(remove_label))
 
         tmdb_paths = []
         tvdb_paths = []
@@ -5226,8 +5229,11 @@ class CollectionBuilder:
         elif self.obj:
             output = f"{self.Type} {self.obj.title} deleted"
             if self.smart_label_collection:
-                for item in self.library.search(label=self.name, libtype=self.builder_level):
-                    self.library.edit_tags("label", item, remove_tags=self.name)
+                smart_label_items = list(self.library.search(label=self.name, libtype=self.builder_level))
+                for smart_item in smart_label_items:
+                    logger.info(f"{smart_item.title[:25]:<25} | Label | -{self.name}")
+                if smart_label_items:
+                    self.library.batch_edit_tags(smart_label_items, "label", remove_tags={self.name})
         else:
             output = ""
 
