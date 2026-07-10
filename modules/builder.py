@@ -4707,6 +4707,12 @@ class CollectionBuilder:
         # Label/genre edits for every item are deferred and batched once after the loop instead of one edit_tags() call per item.
         label_batch_items, label_add_union, label_remove_union = [], set(), set()
         genre_batch_items, genre_add_union, genre_remove_union = [], set(), set()
+        # item_critic/audience/user_rating each set one fixed value for the whole collection, so items needing the change can be batched the same way.
+        rating_targets = {}
+        for _rating in ["item_critic_rating", "item_audience_rating", "item_user_rating"]:
+            if _rating in self.item_details:
+                rating_targets[plex.attribute_translation[_rating[5:]]] = (_rating, self.item_details[_rating])
+        rating_batch_items = {}
         for item in self.items:
             item = self.library.reload(item)
             current_labels = [la.tag for la in self.library.item_labels(item)]
@@ -4736,13 +4742,11 @@ class CollectionBuilder:
             if "item_edition" in self.item_details and item.editionTitle != self.item_details["item_edition"]:
                 self.library.query_data(item.editEditionTitle, self.item_details["item_edition"])
                 logger.info(f"{item.title[:25]:<25} | Edition | {self.item_details['item_edition']}")
-            for _rating in ["item_critic_rating", "item_audience_rating", "item_user_rating"]:
-                if _rating in self.item_details:
-                    plex_attr = plex.attribute_translation[_rating[5:]]
-                    current_rating = getattr(item, plex_attr)
-                    if current_rating != self.item_details[_rating]:
-                        item.editField(plex_attr, self.item_details[_rating])
-                        logger.info(f"{item.title[:25]:<25} | {_rating[5:].replace('_', ' ').title()} | {self.item_details[_rating]}")
+            for plex_attr, (_rating, target_rating) in rating_targets.items():
+                current_rating = getattr(item, plex_attr)
+                if current_rating != target_rating:
+                    rating_batch_items.setdefault(plex_attr, []).append(item)
+                    logger.info(f"{item.title[:25]:<25} | {_rating[5:].replace('_', ' ').title()} | {target_rating}")
             path = None
             if (
                 "item_radarr_tag" in self.item_details
@@ -4819,6 +4823,10 @@ class CollectionBuilder:
         if genre_batch_items:
             with timings.track("update_details_genre_batch", library=self.library.name):
                 self.library.batch_edit_tags(genre_batch_items, "genre", add_tags=genre_add_union, remove_tags=genre_remove_union)
+        for plex_attr, batch_items in rating_batch_items.items():
+            if batch_items:
+                with timings.track("update_details_rating_batch", library=self.library.name):
+                    self.library.batch_edit_field(batch_items, plex_attr, rating_targets[plex_attr][1])
 
         if self.library.Radarr and tmdb_paths:
             try:
