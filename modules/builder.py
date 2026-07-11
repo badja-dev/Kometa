@@ -1768,7 +1768,7 @@ class CollectionBuilder:
         if method_name == "url_poster":
             try:
                 if not method_data.startswith("https://theposterdb.com/api/assets/"):
-                    self.config.Requests.get_image(method_data)
+                    self.config.Requests.get_image(method_data, validate_only=True)
                 self.posters[method_name] = method_data
             except Failed:
                 logger.warning(f"{self.Type} Warning: No Poster Found at {method_data}")
@@ -1793,7 +1793,7 @@ class CollectionBuilder:
     def _background(self, method_name, method_data):
         if method_name == "url_background":
             try:
-                self.config.Requests.get_image(method_data)
+                self.config.Requests.get_image(method_data, validate_only=True)
                 self.backgrounds[method_name] = method_data
             except Failed:
                 logger.warning(f"{self.Type} Warning: No Background Found at {method_data}")
@@ -1810,7 +1810,7 @@ class CollectionBuilder:
     def _logo(self, method_name, method_data):
         if method_name == "url_logo":
             try:
-                self.config.Requests.get_image(method_data)
+                self.config.Requests.get_image(method_data, validate_only=True)
                 self.logos[method_name] = method_data
             except Failed:
                 logger.warning(f"{self.Type} Warning: No Logo Found at {method_data}")
@@ -1823,7 +1823,7 @@ class CollectionBuilder:
     def _square_art(self, method_name, method_data):
         if method_name == "url_square_art":
             try:
-                self.config.Requests.get_image(method_data)
+                self.config.Requests.get_image(method_data, validate_only=True)
                 self.square_arts[method_name] = method_data
             except Failed:
                 logger.warning(f"{self.Type} Warning: No Square Art Found at {method_data}")

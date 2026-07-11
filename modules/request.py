@@ -139,19 +139,24 @@ class Requests:
             raise Failed(f"URL Error: {response.status_code} on {url}")
         return YAML(input_data=response.content, check_empty=check_empty)
 
-    def get_image(self, url, session=None):
-        # Skip the network entirely on a repeat request for a URL already fetched this run (e.g. many collections sharing one default poster/logo).
-        if url in self._image_url_cache:
-            return self._image_url_cache[url]
+    def get_image(self, url, session=None, validate_only=False):
+        # Keyed on (url, validate_only) so a bodyless HEAD check can never be served back to a caller that needs real content.
+        cache_key = (url, validate_only)
+        if cache_key in self._image_url_cache:
+            return self._image_url_cache[cache_key]
         with timings.tag_context("image"):
-            response = self.get(url, header=True) if session is None else session.get(url, headers=get_header(None, True, None), timeout=DEFAULT_TIMEOUT)
+            if validate_only:
+                # HEAD-only for validation-only callers (e.g. builder.py's url_poster/url_background/url_logo/url_square_art checks) - same status/Content-Type headers as GET, without downloading the body.
+                response = self.head(url, header=True) if session is None else session.head(url, headers=get_header(None, True, None), timeout=DEFAULT_TIMEOUT, allow_redirects=True)
+            else:
+                response = self.get(url, header=True) if session is None else session.get(url, headers=get_header(None, True, None), timeout=DEFAULT_TIMEOUT)
         if response.status_code == 404:
             raise Failed(f"Image Error: Not Found on Image URL: {url}")
         if response.status_code >= 400:
             raise Failed(f"Image Error: {response.status_code} on Image URL: {url}")
         if "Content-Type" not in response.headers or response.headers["Content-Type"] not in self.image_content_types:
             raise Failed("Image Not PNG, JPG, or WEBP")
-        self._image_url_cache[url] = response
+        self._image_url_cache[cache_key] = response
         return response
 
     def get_stream(self, url, location, info="Item"):
@@ -199,6 +204,10 @@ class Requests:
     @retry(stop=stop_after_attempt(6), wait=wait_exponential(multiplier=1, min=1, max=10))
     def get(self, url, json=None, headers=None, params=None, header=None, language=None):
         return self.session.get(url, json=json, headers=get_header(headers, header, language), params=params, timeout=DEFAULT_TIMEOUT)
+
+    @retry(stop=stop_after_attempt(6), wait=wait_exponential(multiplier=1, min=1, max=10))
+    def head(self, url, headers=None, header=None, language=None):
+        return self.session.head(url, headers=get_header(headers, header, language), timeout=DEFAULT_TIMEOUT, allow_redirects=True)
 
     def get_image_encoded(self, url):
         return base64.b64encode(self.get(url).content).decode("utf-8")
