@@ -76,6 +76,7 @@ class Requests:
         self.env_branch = env_branch
         self.git_branch = git_branch
         self.image_content_types = ["image/png", "image/jpeg", "image/webp"]
+        self._image_url_cache = {}  # Run-scoped memoization for get_image() - same URL within one run is always the same asset, no staleness risk.
         self._nightly = None
         self._develop = None
         self._master = None
@@ -139,6 +140,9 @@ class Requests:
         return YAML(input_data=response.content, check_empty=check_empty)
 
     def get_image(self, url, session=None):
+        # Skip the network entirely on a repeat request for a URL already fetched this run (e.g. many collections sharing one default poster/logo).
+        if url in self._image_url_cache:
+            return self._image_url_cache[url]
         with timings.tag_context("image"):
             response = self.get(url, header=True) if session is None else session.get(url, headers=get_header(None, True, None), timeout=DEFAULT_TIMEOUT)
         if response.status_code == 404:
@@ -147,6 +151,7 @@ class Requests:
             raise Failed(f"Image Error: {response.status_code} on Image URL: {url}")
         if "Content-Type" not in response.headers or response.headers["Content-Type"] not in self.image_content_types:
             raise Failed("Image Not PNG, JPG, or WEBP")
+        self._image_url_cache[url] = response
         return response
 
     def get_stream(self, url, location, info="Item"):
