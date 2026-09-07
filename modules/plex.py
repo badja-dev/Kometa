@@ -2386,6 +2386,8 @@ class Plex(Library):
         seen_items = set()
         for item in items:
             item_to_id = item.show() if isinstance(item, (Season, Episode)) else item
+            if item_to_id is None:
+                continue
             if item_to_id.ratingKey in seen_items:
                 continue
             seen_items.add(item_to_id.ratingKey)
